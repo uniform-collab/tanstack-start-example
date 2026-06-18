@@ -35,11 +35,16 @@ function canvasClient(): CanvasClient {
 /**
  * The single shared function for fetching a composition by its project map
  * node path. Server-only -- it reads the Uniform API key from the environment.
+ *
+ * Draft content is served in development, and in production only when the
+ * request is in preview mode (a valid sealed preview cookie is present).
  */
-export async function getComposition(path: string): Promise<RootComponentInstance> {
-  // In production we want published content; in development we render drafts.
-  const state =
-    process.env.NODE_ENV === "production" ? CANVAS_PUBLISHED_STATE : CANVAS_DRAFT_STATE;
+export async function getComposition(
+  path: string,
+  { preview = false }: { preview?: boolean } = {}
+): Promise<RootComponentInstance> {
+  const useDraft = preview || process.env.NODE_ENV !== "production";
+  const state = useDraft ? CANVAS_DRAFT_STATE : CANVAS_PUBLISHED_STATE;
 
   const { composition } = await canvasClient().getCompositionByNodePath({
     projectMapNodePath: path || "/",
