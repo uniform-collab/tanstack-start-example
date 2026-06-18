@@ -16,6 +16,7 @@ function canvasClient(): CanvasClient {
   const apiKey = process.env.UNIFORM_API_KEY;
   const projectId = process.env.UNIFORM_PROJECT_ID;
   const apiHost = process.env.UNIFORM_CLI_BASE_URL;
+  const edgeApiHost = process.env.UNIFORM_CLI_BASE_EDGE_URL!;
 
   if (!apiKey || !projectId) {
     throw new Error(
@@ -27,6 +28,7 @@ function canvasClient(): CanvasClient {
     apiKey,
     projectId,
     ...(apiHost ? { apiHost } : {}),
+    ...(edgeApiHost ? { edgeApiHost } : {}),
   });
 
   return client;
