@@ -13,6 +13,11 @@ dist-ssr
 *.local
 .env
 
+# TanStack Start build/cache output
+.tanstack
+.output
+.nitro
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
