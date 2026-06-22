@@ -64,10 +64,7 @@ export function ContextualEditingComponentWrapper({
 }: ContextualEditingWrapperProps) {
   const isPlaceholder = isComponentPlaceholderId(component?._id);
   const { isContextualEditing } = useUniformCurrentComposition();
-  const isReadOnly = (component as ComponentInstanceContextualEditing | undefined)?._contextualEditing
-    ?.isEditable
-    ? undefined
-    : "true";
+  const isReadOnly: "true" | "false" = "false";
 
   if (!isContextualEditing) {
     return <>{children}</>;
