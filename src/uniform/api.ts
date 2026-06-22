@@ -1,18 +1,19 @@
 import "dotenv/config";
 import {
   CanvasClient,
+  UncachedCanvasClient,
   CANVAS_DRAFT_STATE,
   CANVAS_PUBLISHED_STATE,
   type RootComponentInstance,
 } from "@uniformdev/canvas";
+import { type ClientOptions } from "@uniformdev/context/api";
 
 // Lazily created so importing this module never throws (and never connects)
 // until a composition is actually fetched on the server.
-let client: CanvasClient | null = null;
+let cachedClient: CanvasClient | null = null;
+let uncachedClient: UncachedCanvasClient | null = null;
 
-function canvasClient(): CanvasClient {
-  if (client) return client;
-
+function clientOptions(useDraft: boolean): ClientOptions {
   const apiKey = process.env.UNIFORM_API_KEY;
   const projectId = process.env.UNIFORM_PROJECT_ID;
   const apiHost = process.env.UNIFORM_CLI_BASE_URL;
@@ -24,14 +25,24 @@ function canvasClient(): CanvasClient {
     );
   }
 
-  client = new CanvasClient({
+  return {
     apiKey,
     projectId,
     ...(apiHost ? { apiHost } : {}),
     ...(edgeApiHost ? { edgeApiHost } : {}),
-  });
+    bypassCache: useDraft,
+  };
+}
 
-  return client;
+// Published content is served through the cached edge client. Draft/preview
+// content uses the uncached client (bypasses the edge CDN cache) so editors
+// always see their latest changes instead of a stale cached response.
+function canvasClient(useDraft: boolean): CanvasClient {
+  const options = clientOptions(useDraft);
+  if (useDraft) {
+    return (uncachedClient ??= new UncachedCanvasClient(options));
+  }
+  return (cachedClient ??= new CanvasClient(options));
 }
 
 /**
@@ -48,7 +59,7 @@ export async function getComposition(
   const useDraft = preview || process.env.NODE_ENV !== "production";
   const state = useDraft ? CANVAS_DRAFT_STATE : CANVAS_PUBLISHED_STATE;
 
-  const { composition } = await canvasClient().getCompositionByNodePath({
+  const { composition } = await canvasClient(useDraft).getCompositionByNodePath({
     projectMapNodePath: path || "/",
     state,
   });
