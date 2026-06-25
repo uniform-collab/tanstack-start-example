@@ -46,10 +46,19 @@ const staticFiles = async (request, next) => {
   return new Response(body, { headers });
 };
 
+// srvx (>=0.8) resolves its bind host as `opts.hostname ?? process.env.HOST`.
+// Sandboxes/PaaS (e.g. Daytona) commonly export HOST=0.0.0.0 meaning "all
+// interfaces" — but 0.0.0.0 is IPv4-ONLY, so a proxy that dials the app over
+// IPv6 (Daytona uses [::1]:3000) gets ECONNREFUSED. Bind the dual-stack IPv6
+// wildcard "::" instead, which accepts BOTH IPv6 (::1) and IPv4 traffic.
+const envHost = process.env.HOST;
+const hostname = !envHost || envHost === "0.0.0.0" ? "::" : envHost;
+
 serve({
   port,
+  hostname,
   middleware: [staticFiles],
   fetch: server.fetch,
 });
 
-console.log(`Production server listening on http://localhost:${port}`);
+console.log(`Production server listening on http://[${hostname}]:${port}`);
