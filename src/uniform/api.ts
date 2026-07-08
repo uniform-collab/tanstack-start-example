@@ -66,3 +66,23 @@ export async function getComposition(
 
   return composition;
 }
+
+/**
+ * Fetches a composition (or pattern) by its id. Used by the playground route,
+ * which is opened by the editor with the composition id in the query string.
+ * Server-only.
+ */
+export async function getCompositionById(
+  id: string,
+  { preview = false }: { preview?: boolean } = {}
+): Promise<RootComponentInstance> {
+  const useDraft = preview || process.env.NODE_ENV !== "production";
+  const state = useDraft ? CANVAS_DRAFT_STATE : CANVAS_PUBLISHED_STATE;
+
+  const { composition } = await canvasClient(useDraft).getCompositionById({
+    compositionId: id,
+    state,
+  });
+
+  return composition;
+}

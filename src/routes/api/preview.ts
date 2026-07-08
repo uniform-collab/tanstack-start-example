@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SECRET_QUERY_STRING_PARAM } from "@uniformdev/canvas";
+import {
+  SECRET_QUERY_STRING_PARAM,
+  IN_CONTEXT_EDITOR_PLAYGROUND_QUERY_STRING_PARAM,
+  IN_CONTEXT_EDITOR_CONFIG_CHECK_QUERY_STRING_PARAM,
+} from "@uniformdev/canvas";
 import { enablePreview, exitPreview } from "../../uniform/preview";
 
 // Uniform's "Preview URL" points the Canvas editor at this endpoint, e.g.
@@ -7,10 +11,23 @@ import { enablePreview, exitPreview } from "../../uniform/preview";
 // We validate the shared secret, seal a preview cookie, then 302 to the target
 // page. That page's loader sees the cookie and fetches draft content.
 //
+// Component/pattern previews are different: they have no composition path, so
+// the editor sends `is_incontext_editing_playground=true` and we redirect to a
+// dedicated playground route that live-renders whatever the editor pushes.
+//
 // To leave preview mode, hit /api/preview?exit=true (clears the cookie).
 
+// Route that live-previews components and patterns (see routes/playground.tsx).
+const PLAYGROUND_PATH = "/playground";
+
 // Params that drive this endpoint and shouldn't be forwarded to the page.
-const CONTROL_PARAMS = new Set([SECRET_QUERY_STRING_PARAM, "path", "slug", "exit"]);
+const CONTROL_PARAMS = new Set([
+  SECRET_QUERY_STRING_PARAM,
+  IN_CONTEXT_EDITOR_CONFIG_CHECK_QUERY_STRING_PARAM,
+  "path",
+  "slug",
+  "exit",
+]);
 
 // Resolve the destination pathname. Uniform sends `path` (URL-encoded, e.g.
 // %2Fabout) and `slug` (no leading slash, e.g. about); prefer `path`, fall back
@@ -23,19 +40,15 @@ function toLocalPath(input: string | null): string {
   return "/" + input.replace(/^[/\\]+/, "");
 }
 
-// Build "/about?locale=...&is_incontext_editing_mode=true": keep the editor's
-// context params (everything except CONTROL_PARAMS) so editing stays active
-// after the redirect.
-function buildDestination(url: URL): string {
-  const dest = toLocalPath(
-    url.searchParams.get("path") ?? url.searchParams.get("slug")
-  );
+// Append the editor's context params (everything except CONTROL_PARAMS) to the
+// destination so contextual editing / playground state survives the redirect.
+function withForwardedParams(basePath: string, url: URL): string {
   const forwarded = new URLSearchParams();
   for (const [key, value] of url.searchParams) {
     if (!CONTROL_PARAMS.has(key)) forwarded.set(key, value);
   }
   const query = forwarded.toString();
-  return query ? `${dest}?${query}` : dest;
+  return query ? `${basePath}?${query}` : basePath;
 }
 
 export const Route = createFileRoute("/api/preview")({
@@ -43,19 +56,34 @@ export const Route = createFileRoute("/api/preview")({
     handlers: {
       GET: async ({ request }) => {
         const url = new URL(request.url);
+        const params = url.searchParams;
 
-        if (url.searchParams.get("exit") === "true") {
-          await exitPreview();
-          return redirect(toLocalPath(url.searchParams.get("path")));
+        // Capability probe: the editor asks (before opening) whether we expose a
+        // playground / custom routing. No secret required -- it returns no content.
+        if (params.get(IN_CONTEXT_EDITOR_CONFIG_CHECK_QUERY_STRING_PARAM) === "true") {
+          return json({ hasPlayground: true, isUsingCustomFullPathResolver: false });
         }
 
-        const secret = url.searchParams.get(SECRET_QUERY_STRING_PARAM);
+        if (params.get("exit") === "true") {
+          await exitPreview();
+          return redirect(toLocalPath(params.get("path")));
+        }
+
+        const secret = params.get(SECRET_QUERY_STRING_PARAM);
         if (!secret || secret !== process.env.UNIFORM_PREVIEW_SECRET) {
           return new Response("Invalid preview secret.", { status: 401 });
         }
 
         await enablePreview();
-        return redirect(buildDestination(url));
+
+        // Component/pattern preview -> playground route (no composition path).
+        if (params.get(IN_CONTEXT_EDITOR_PLAYGROUND_QUERY_STRING_PARAM) === "true") {
+          return redirect(withForwardedParams(PLAYGROUND_PATH, url));
+        }
+
+        // Regular page preview -> the resolved composition path.
+        const dest = toLocalPath(params.get("path") ?? params.get("slug"));
+        return redirect(withForwardedParams(dest, url));
       },
     },
   },
@@ -66,4 +94,10 @@ export const Route = createFileRoute("/api/preview")({
 // that Set-Cookie because Start merges context cookies into the final response.
 function redirect(location: string): Response {
   return new Response(null, { status: 302, headers: { location } });
+}
+
+function json(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "content-type": "application/json" },
+  });
 }

@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPreviewRouteImport } from './routes/api/preview'
 
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
@@ -32,35 +38,46 @@ const ApiPreviewRoute = ApiPreviewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/playground': typeof PlaygroundRoute
   '/api/preview': typeof ApiPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/playground': typeof PlaygroundRoute
   '/api/preview': typeof ApiPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/playground': typeof PlaygroundRoute
   '/api/preview': typeof ApiPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/api/preview'
+  fullPaths: '/' | '/$' | '/playground' | '/api/preview'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/api/preview'
-  id: '__root__' | '/' | '/$' | '/api/preview'
+  to: '/' | '/$' | '/playground' | '/api/preview'
+  id: '__root__' | '/' | '/$' | '/playground' | '/api/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  PlaygroundRoute: typeof PlaygroundRoute
   ApiPreviewRoute: typeof ApiPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$': {
       id: '/$'
       path: '/$'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  PlaygroundRoute: PlaygroundRoute,
   ApiPreviewRoute: ApiPreviewRoute,
 }
 export const routeTree = rootRouteImport

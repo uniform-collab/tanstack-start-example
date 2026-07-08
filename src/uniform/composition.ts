@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getComposition } from "./api";
+import { getComposition, getCompositionById } from "./api";
 import { isPreview } from "./preview";
 
 // The single, server-only entry point for fetching a composition. Route loaders
@@ -15,4 +15,14 @@ export const fetchComposition = createServerFn({ method: "GET" })
   .handler(async ({ data: path }): Promise<any> => {
     const preview = await isPreview();
     return getComposition(path, { preview });
+  });
+
+// Server-only fetch of a composition/pattern by id -- used by the playground
+// route, which the editor opens with the composition id in the query string.
+export const fetchCompositionById = createServerFn({ method: "GET" })
+  .validator((id: string) => id)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  .handler(async ({ data: id }): Promise<any> => {
+    const preview = await isPreview();
+    return getCompositionById(id, { preview });
   });
