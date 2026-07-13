@@ -16,8 +16,8 @@
   "dependencies": {
     "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-start": "^1.168.26",
-    "@uniformdev/canvas": "^20.67.0",
-    "@uniformdev/canvas-react": "^20.67.0",
+    "@uniformdev/canvas": "20.71.2-alpha.13",
+    "@uniformdev/canvas-react": "20.71.2-alpha.13",
     "dotenv": "^16.4.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -31,7 +31,7 @@
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^7.13.1",
     "@typescript-eslint/parser": "^7.13.1",
-    "@uniformdev/cli": "^20.67.0",
+    "@uniformdev/cli": "20.71.2-alpha.13",
     "@vitejs/plugin-react-swc": "^4.3.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
