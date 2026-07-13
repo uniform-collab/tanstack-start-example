@@ -62,6 +62,7 @@ export async function getComposition(
   const { composition } = await canvasClient(useDraft).getCompositionByNodePath({
     projectMapNodePath: path || "/",
     state,
+    withComponentIDs: true,
   });
 
   return composition;
@@ -82,6 +83,7 @@ export async function getCompositionById(
   const { composition } = await canvasClient(useDraft).getCompositionById({
     compositionId: id,
     state,
+    withComponentIDs: true,
   });
 
   return composition;
